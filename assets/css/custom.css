@@ -1,0 +1,10 @@
+/** setting page style **/
+.awpr_main .awpr-api-table {
+    text-align: left;
+    line-height: 2;
+    font-size: 16px;
+}
+.awpr_main .awpr-api-table input, p {
+    margin-left: 20px;
+    margin-top: 0;
+}
