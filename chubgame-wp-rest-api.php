@@ -24,9 +24,28 @@ function AWPR_register_options_page(): void {
     add_options_page('AWPR Settings', 'ChubGame WP REST API', 'manage_options', 'awpr_settings', 'AWPR_options_page');
 
     //call register settings function
-	add_action( 'admin_init', 'register_awpr_plugin_settings' );
+    add_action( 'admin_init', 'register_awpr_plugin_settings' );
 }
 add_action('admin_menu', 'AWPR_register_options_page');
+
+function check_admin_notices(): void {
+    if (!is_plugin_active('mycred/mycred.php')) {
+        ?>
+        <div class="notice notice-error is-dismissible">
+            <p><?php _e('The myCred plugin is not activated. Please install and activate the myCred plugin to use the ChubGame WP REST API plugin.', 'chubgame-wp-rest-api'); ?></p>
+        </div>
+        <?php
+    } else {
+        ?>
+        <div class="notice notice-success is-dismissible">
+            <p><?php _e('The myCred plugin is activated. You can now use the ChubGame WP REST API plugin.', 'chubgame-wp-rest-api'); ?></p>
+        </div>
+        <?php
+    }
+}
+
+// finally display any admin notices.
+add_action( 'admin_notices', 'check_admin_notices' );
 
 function register_awpr_plugin_settings(): void {
     // Register settings for API Enable/Disable
@@ -53,14 +72,14 @@ function register_awpr_plugin_settings(): void {
 function AWPR_options_page(): void {
 ?>
     <div class="awpr_main">
-        <h2><?php _e('Enable/Disable Routes', 'chubgame-wp-rest-api'); ?></h2>
+        <h2><?php _e('ChubGame WP Routes Management', 'chubgame-wp-rest-api'); ?></h2>
         <form method="post" action="options.php">
             <?php settings_fields( 'awpr-plugin-settings-group' ); ?>
             <?php do_settings_sections( 'awpr-plugin-settings-group' ); ?>
 
             <!-- API Enable/Disable Section -->
             <fieldset>
-                <legend><?php _e('API Enable/Disable', 'chubgame-wp-rest-api'); ?></legend>
+                <h3><?php _e('API Enable/Disable', 'chubgame-wp-rest-api'); ?></h3>
                 <table>
                     <tr valign="top" class="awpr-api-table">
                         <th scope="row"><label for="promotion_validation_api"><?php _e('Login API', 'chubgame-wp-rest-api'); ?></label></th>
@@ -88,7 +107,7 @@ function AWPR_options_page(): void {
 
             <!-- API Routes Section -->
             <fieldset>
-                <legend><?php _e('API Routes', 'chubgame-wp-rest-api'); ?></legend>
+                <h3><?php _e('API Routes', 'chubgame-wp-rest-api'); ?></h3>
                 <table>
                     <tr valign="top" class="awpr-api-table">
                         <th scope="row"><label for="api_route_prefix"><?php _e('API Route Prefix', 'chubgame-wp-rest-api'); ?></label></th>
@@ -123,7 +142,7 @@ function AWPR_options_page(): void {
 
             <!-- MyCred Settings Section -->
             <fieldset>
-                <legend><?php _e('MyCred Settings', 'chubgame-wp-rest-api'); ?></legend>
+                <h3><?php _e('MyCred Settings', 'chubgame-wp-rest-api'); ?></h3>
                 <table>
                     <tr valign="top" class="awpr-api-table">
                         <th scope="row"><label for="mycred_points_add_reference"><?php _e('MyCred Points Add Reference', 'chubgame-wp-rest-api'); ?></label></th>
@@ -179,7 +198,7 @@ function AWPR_options_page(): void {
 
             <!-- Limitation Settings Section -->
             <fieldset>
-                <legend><?php _e('Limitation Settings', 'chubgame-wp-rest-api'); ?></legend>
+                <h3><?php _e('Limitation Settings', 'chubgame-wp-rest-api'); ?></h3>
                 <table>
                     <tr valign="top" class="awpr-api-table">
                         <th scope="row"><label for="win_points_max"><?php _e('Win Points Max', 'chubgame-wp-rest-api'); ?></label></th>
@@ -207,6 +226,27 @@ function AWPR_options_page(): void {
                         <td>
                             <input type="number" id="loss_points_min" name="loss_points_min" value="<?php echo esc_attr(get_option('loss_points_min', '5')); ?>" />
                             <p><?php _e('Enter the minimum points for losing', 'chubgame-wp-rest-api'); ?></p>
+                        </td>
+                    </tr>
+                </table>
+            </fieldset>
+
+            <!-- Domain Settings Section -->
+            <fieldset>
+                <h3><?php _e('Domain Settings', 'chubgame-wp-rest-api'); ?></h3>
+                <table>
+                    <tr valign="top" class="awpr-api-table">
+                        <th scope="row"><label for="enable_allowed_domain"><?php _e('Enable Allowed Domain', 'chubgame-wp-rest-api'); ?></label></th>
+                        <td>
+                            <input type="checkbox" id="enable_allowed_domain" name="enable_allowed_domain" value="yes" <?php if (get_option('enable_allowed_domain') == 'yes') { echo "checked"; } ?>/>
+                            <p><?php _e('Please check if you want to enable access for the specified domain.', 'chubgame-wp-rest-api'); ?></p>
+                        </td>
+                    </tr>
+                    <tr valign="top" class="awpr-api-table">
+                        <th scope="row"><label for="allowed_domain"><?php _e('Allowed Domain', 'chubgame-wp-rest-api'); ?></label></th>
+                        <td>
+                            <input type="text" id="allowed_domain" name="allowed_domain" value="<?php echo esc_attr(get_option('allowed_domain', 'https://dice.chubgame.com')); ?>" />
+                            <p><?php _e('Enter the allowed domain to access the API endpoints.', 'chubgame-wp-rest-api'); ?></p>
                         </td>
                     </tr>
                 </table>

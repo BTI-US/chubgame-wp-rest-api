@@ -1,6 +1,6 @@
 <?php
 /**
- * GWL Register REST API Routes
+ * ChubGame Register REST API Routes
  *
  * @package REST API ENDPOINTS
  */
@@ -15,7 +15,7 @@ class ChubGame_Register_Route_API {
 		add_action( 'rest_api_init', array( $this, 'rest_api_endpoints' ) );
 	}
 
-	function create_dice_data_table() {
+	function create_dice_data_table(): void {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'dice_data';
 		$charset_collate = $wpdb->get_charset_collate();
@@ -48,7 +48,7 @@ class ChubGame_Register_Route_API {
 	/**
 	 * Register user endpoints.
 	 */
-	function rest_api_endpoints() {
+	function rest_api_endpoints(): void {
 		
 		//get plugin settings
 		$promotion_validation_api = esc_attr( get_option( 'promotion_validation_api' ) );
@@ -117,42 +117,54 @@ class ChubGame_Register_Route_API {
 	}
 
 	/**
+	 * Check if the request domain matches the allowed domain.
+	 *
+	 * @param WP_REST_Request $request The REST request.
+	 * @return WP_REST_Response|bool Returns true if the domain is allowed, otherwise returns a WP_REST_Response with an error.
+	 */
+	function check_allowed_domain(WP_REST_Request $request): bool|WP_REST_Response {
+		$enable_allowed_domain = esc_attr(get_option('enable_allowed_domain'));
+		$allowed_domain = esc_attr(get_option('allowed_domain'));
+
+		if (!empty($enable_allowed_domain) && ($enable_allowed_domain == 'yes') && !empty($allowed_domain)) {
+			// Check the Origin or Referer header
+			$origin = $request->get_header('origin');
+			$referer = $request->get_header('referer');
+
+			$is_allowed = false;
+			if ($origin) {
+				$origin_host = parse_url($origin, PHP_URL_HOST);
+				if ($origin_host === $allowed_domain) {
+					$is_allowed = true;
+				}
+			}
+
+			if ($referer) {
+				$referer_host = parse_url($referer, PHP_URL_HOST);
+				if ($referer_host === $allowed_domain) {
+					$is_allowed = true;
+				}
+			}
+
+			if (!$is_allowed) {
+				return new WP_REST_Response(array('valid' => false, 'error' => 'Invalid origin or referer'), 403);
+			}
+		}
+
+		return true;
+	}
+
+	/**
 	 * User Login call back.
 	 *
 	 * @param WP_REST_Request $request Login request parameter.
 	 */
-	function handle_validate_promotion_code(WP_REST_Request $request) {
+	function handle_validate_promotion_code(WP_REST_Request $request): WP_REST_Response {
 		global $wpdb;
 
-		// Get the site's domain dynamically
-		$site_url = home_url();
-		$parsed_url = parse_url($site_url);
-		$host = isset($parsed_url['host']) ? $parsed_url['host'] : '';
-
-		// Allowed domain pattern
-		$allowed_domain_pattern = '/^([a-z0-9]+[.])*' . preg_quote($host, '/') . '$/';
-
-		// Check the Origin or Referer header
-		$origin = $request->get_header('origin');
-		$referer = $request->get_header('referer');
-
-		$is_allowed = false;
-		if ($origin) {
-			$origin_host = parse_url($origin, PHP_URL_HOST);
-			if (preg_match($allowed_domain_pattern, $origin_host)) {
-				$is_allowed = true;
-			}
-		}
-
-		if ($referer) {
-			$referer_host = parse_url($referer, PHP_URL_HOST);
-			if (preg_match($allowed_domain_pattern, $referer_host)) {
-				$is_allowed = true;
-			}
-		}
-
-		if (!$is_allowed) {
-			return new WP_REST_Response(array('valid' => false, 'error' => 'Invalid origin or referer'), 403);
+		$domain_check = $this->check_allowed_domain($request);
+		if ($domain_check !== true) {
+			return $domain_check;
 		}
 
 		$promotion_code = $request->get_param('promotionCode');
@@ -227,38 +239,17 @@ class ChubGame_Register_Route_API {
 	 *
 	 * @param WP_REST_Request $request Post request parameter.
 	 */	
-	function handle_check_balance(WP_REST_Request $request) {
+	function handle_check_balance(WP_REST_Request $request): WP_REST_Response {
 		global $wpdb;
 
-		// Get the site's domain dynamically
-		$site_url = home_url();
-		$parsed_url = parse_url($site_url);
-		$host = isset($parsed_url['host']) ? $parsed_url['host'] : '';
-
-		// Allowed domain pattern
-		$allowed_domain_pattern = '/^([a-z0-9]+[.])*' . preg_quote($host, '/') . '$/';
-
-		// Check the Origin or Referer header
-		$origin = $request->get_header('origin');
-		$referer = $request->get_header('referer');
-
-		$is_allowed = false;
-		if ($origin) {
-			$origin_host = parse_url($origin, PHP_URL_HOST);
-			if (preg_match($allowed_domain_pattern, $origin_host)) {
-				$is_allowed = true;
-			}
+		// Check if the myCred plugin is active
+		if (!is_plugin_active('mycred/mycred.php')) {
+			return new WP_REST_Response(array('valid' => false, 'error' => 'myCred plugin is not activated'), 400);
 		}
 
-		if ($referer) {
-			$referer_host = parse_url($referer, PHP_URL_HOST);
-			if (preg_match($allowed_domain_pattern, $referer_host)) {
-				$is_allowed = true;
-			}
-		}
-
-		if (!$is_allowed) {
-			return new WP_REST_Response(array('valid' => false, 'error' => 'Invalid origin or referer'), 403);
+		$domain_check = $this->check_allowed_domain($request);
+		if ($domain_check !== true) {
+			return $domain_check;
 		}
 
 		// Get the request parameters
@@ -319,7 +310,19 @@ class ChubGame_Register_Route_API {
 	 *
 	 * @param WP_REST_Request $request User request parameter.
 	 */	
-	function handle_send_dice_data(WP_REST_Request $request) {
+	function handle_send_dice_data(WP_REST_Request $request): WP_REST_Response {
+		global $wpdb;
+
+		// Check if the myCred plugin is active
+		if (!is_plugin_active('mycred/mycred.php')) {
+			return new WP_REST_Response(array('valid' => false, 'error' => 'myCred plugin is not activated'), 400);
+		}
+
+		$domain_check = $this->check_allowed_domain($request);
+		if ($domain_check !== true) {
+			return $domain_check;
+		}
+
 		$win_points_min = esc_attr( get_option( 'win_points_min' ) );
 		$win_points_max = esc_attr( get_option( 'win_points_max' ) );
 		$loss_points_min = esc_attr( get_option( 'loss_points_min' ) );
@@ -332,39 +335,6 @@ class ChubGame_Register_Route_API {
 		$mycred_points_subtract_reference = esc_attr( get_option( 'mycred_points_subtract_reference' ) );
 		$mycred_points_subtract_log_entry_pve = esc_attr( get_option( 'mycred_points_subtract_log_entry_pve' ) );
 		$mycred_points_subtract_log_entry_pvp = esc_attr( get_option( 'mycred_points_subtract_log_entry_pvp' ) );
-
-		global $wpdb;
-
-		// Get the site's domain dynamically
-		$site_url = home_url();
-		$parsed_url = parse_url($site_url);
-		$host = isset($parsed_url['host']) ? $parsed_url['host'] : '';
-
-		// Allowed domain pattern
-		$allowed_domain_pattern = '/^([a-z0-9]+[.])*' . preg_quote($host, '/') . '$/';
-
-		// Check the Origin or Referer header
-		$origin = $request->get_header('origin');
-		$referer = $request->get_header('referer');
-
-		$is_allowed = false;
-		if ($origin) {
-			$origin_host = parse_url($origin, PHP_URL_HOST);
-			if (preg_match($allowed_domain_pattern, $origin_host)) {
-				$is_allowed = true;
-			}
-		}
-
-		if ($referer) {
-			$referer_host = parse_url($referer, PHP_URL_HOST);
-			if (preg_match($allowed_domain_pattern, $referer_host)) {
-				$is_allowed = true;
-			}
-		}
-
-		if (!$is_allowed) {
-			return new WP_REST_Response(array('valid' => false, 'error' => 'Invalid origin or referer'), 403);
-		}
 
 		// Extract request parameters
 		$dice_amount = $request->get_param('diceAmount');
@@ -648,4 +618,3 @@ class ChubGame_Register_Route_API {
 }
 
 new ChubGame_Register_Route_API();
-
