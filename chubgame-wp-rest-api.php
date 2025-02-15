@@ -70,6 +70,26 @@ function register_awpr_plugin_settings(): void {
 }
 
 function AWPR_options_page(): void {
+    // Check if user is allowed access
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+
+    $active_tab = isset($_GET['tab']) ? $_GET['tab'] : 'options-settings';
+
+    echo '<h2 class="nav-tab-wrapper">';
+    echo '<a href="?page=awpr_settings&tab=options-settings" class="nav-tab ' . ($active_tab == 'options-settings' ? 'nav-tab-active' : '') . '">' . __('Options Settings', 'chubgame-wp-rest-api') . '</a>';
+    echo '<a href="?page=awpr_settings&tab=user-guide" class="nav-tab ' . ($active_tab == 'user-guide' ? 'nav-tab-active' : '') . '">' . __('User Guide', 'chubgame-wp-rest-api') . '</a>';
+    echo '</h2>';
+
+    if ($active_tab == 'options-settings') {
+        AWPR_options_settings();
+    } else {
+        AWPR_user_guide_page();
+    }
+}
+
+function AWPR_options_settings(): void {
 ?>
     <div class="awpr_main">
         <h2><?php _e('ChubGame WP Routes Management', 'chubgame-wp-rest-api'); ?></h2>
@@ -256,4 +276,111 @@ function AWPR_options_page(): void {
         </form>
     </div>
 <?php
+}
+
+function AWPR_user_guide_page(): void {
+    ?>
+    <div class="awpr_main">
+        <h2><?php _e('How To Use ChubGame WP REST API', 'chubgame-wp-rest-api'); ?></h2>
+        
+        <h3><?php _e('Promotion Code Validation API', 'chubgame-wp-rest-api'); ?></h3>
+        <p><?php _e('Validates a promotion code and associates the parent user with the promotion code.', 'chubgame-wp-rest-api'); ?></p>
+        <h4><?php _e('Endpoint', 'chubgame-wp-rest-api'); ?></h4>
+        <p><code>POST /wp-json/chubgame/v1/validate</code></p>
+        <h4><?php _e('Parameters', 'chubgame-wp-rest-api'); ?></h4>
+        <ul>
+            <li><code>promotionCode</code> (string): <?php _e('The promotion code to validate.', 'chubgame-wp-rest-api'); ?></li>
+            <li><code>username</code> (string): <?php _e('The username of the child user.', 'chubgame-wp-rest-api'); ?></li>
+        </ul>
+        <h4><?php _e('Response', 'chubgame-wp-rest-api'); ?></h4>
+        <h5><?php _e('Success', 'chubgame-wp-rest-api'); ?></h5>
+        <pre><code>{
+    "code": 200,
+    "message": "Promotion code is valid and successfully applied.",
+    "data": {
+        "status": "success",
+        "valid": true,
+        "parent_user_id": 123,
+        "parent_dice_amount": 5
+    }
+}</code></pre>
+        <h5><?php _e('Error', 'chubgame-wp-rest-api'); ?></h5>
+        <pre><code>{
+    "code": 400,
+    "message": "Invalid promotion code",
+    "data": {
+        "status": "invalid_promotion_code"
+    }
+}</code></pre>
+
+        <h3><?php _e('Balance Validation API', 'chubgame-wp-rest-api'); ?></h3>
+        <p><?php _e('Checks if the user has sufficient balance for the specified chips.', 'chubgame-wp-rest-api'); ?></p>
+        <h4><?php _e('Endpoint', 'chubgame-wp-rest-api'); ?></h4>
+        <p><code>POST /wp-json/chubgame/v1/check-balance</code></p>
+        <h4><?php _e('Parameters', 'chubgame-wp-rest-api'); ?></h4>
+        <ul>
+            <li><code>username</code> (string): <?php _e('The username of the user.', 'chubgame-wp-rest-api'); ?></li>
+            <li><code>chips</code> (int): <?php _e('The number of chips to check.', 'chubgame-wp-rest-api'); ?></li>
+        </ul>
+        <h4><?php _e('Response', 'chubgame-wp-rest-api'); ?></h4>
+        <h5><?php _e('Success', 'chubgame-wp-rest-api'); ?></h5>
+        <pre><code>{
+    "code": 200,
+    "message": "Balance is sufficient for current user",
+    "data": {
+        "status": "success",
+        "balance": 1000
+    }
+}</code></pre>
+        <h5><?php _e('Error', 'chubgame-wp-rest-api'); ?></h5>
+        <pre><code>{
+    "code": 400,
+    "message": "Insufficient balance for parent user",
+    "data": {
+        "status": "insufficient_balance",
+        "balance": 500
+    }
+}</code></pre>
+
+        <h3><?php _e('Dice Data and Manage Chips API', 'chubgame-wp-rest-api'); ?></h3>
+        <p><?php _e('Handles the dice game data and manages the chips for parent and child users.', 'chubgame-wp-rest-api'); ?></p>
+        <h4><?php _e('Endpoint', 'chubgame-wp-rest-api'); ?></h4>
+        <p><code>POST /wp-json/chubgame/v1/send</code></p>
+        <h4><?php _e('Parameters', 'chubgame-wp-rest-api'); ?></h4>
+        <ul>
+            <li><code>diceAmount</code> (int): <?php _e('The amount of dice rolled.', 'chubgame-wp-rest-api'); ?></li>
+            <li><code>totalPoints</code> (int): <?php _e('The total points scored.', 'chubgame-wp-rest-api'); ?></li>
+            <li><code>promotionCode</code> (string): <?php _e('Optional: The promotion code used, if empty, then the user is in the PvE mode.', 'chubgame-wp-rest-api'); ?></li>
+            <li><code>isPromotionUser</code> (bool): <?php _e('Indicates if the user is a promotion user.', 'chubgame-wp-rest-api'); ?></li>
+            <li><code>username</code> (string): <?php _e('The username of the user.', 'chubgame-wp-rest-api'); ?></li>
+            <li><code>chips</code> (int): <?php _e('The number of chips of the current user.', 'chubgame-wp-rest-api'); ?></li>
+        </ul>
+        <h4><?php _e('Response', 'chubgame-wp-rest-api'); ?></h4>
+        <h5><?php _e('Success', 'chubgame-wp-rest-api'); ?></h5>
+        <pre><code>{
+    "code": 200,
+    "message": "Game processed successfully",
+    "data": {
+        "status": "success",
+        "balance": 1000,
+        "result": 100,
+        "promotion_code": "DEBUGCODE1234567"
+    }
+}</code></pre>
+        <h5><?php _e('Error', 'chubgame-wp-rest-api'); ?></h5>
+        <pre><code>{
+    "code": 400,
+    "message": "This promotion code has already been used",
+    "data": {
+        "status": "promotion_used"
+    }
+}</code></pre>
+
+        <h2><?php _e('About ChubGame WP REST API', 'chubgame-wp-rest-api'); ?></h2>
+        <p><?php _e('This plugin registers multiple REST API endpoints for ChubGame.', 'chubgame-wp-rest-api'); ?></p>
+        <p><?php _e('Version: 1.0.0', 'chubgame-wp-rest-api'); ?></p>
+        <p><?php _e('Author: ChubGame', 'chubgame-wp-rest-api'); ?></p>
+        <p><?php _e('For more information, visit the plugin page on ', 'chubgame-wp-rest-api'); ?><a href="https://wordpress.org/plugins/chubgame-wp-rest-api/" target="_blank"><?php _e('WordPress.org', 'chubgame-wp-rest-api'); ?></a>.</p>
+    </div>
+    <?php
 }
