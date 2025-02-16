@@ -15,6 +15,18 @@ class ChubGame_Register_Route_API {
 		add_action( 'rest_api_init', array( $this, 'rest_api_endpoints' ) );
 	}
 
+	/**
+	 * Creates the dice_data table in the WordPress database.
+	 *
+	 * This function creates a new table in the WordPress database to store dice data.
+	 * The table includes columns for user ID, dice amount, total points, promotion code,
+	 * chips, and other related data. It also sets up foreign key constraints to link
+	 * parent and child user IDs to the WordPress users table.
+	 *
+	 * @global wpdb $wpdb WordPress database abstraction object.
+	 *
+	 * @return void
+	 */
 	function create_dice_data_table(): void {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'dice_data';
@@ -47,6 +59,27 @@ class ChubGame_Register_Route_API {
 
 	/**
 	 * Register user endpoints.
+	 *
+	 * This function registers the REST API endpoints for user-related actions such as
+	 * validating promotion codes, checking balance, and sending dice data. The endpoints
+	 * are registered based on the plugin settings retrieved from the WordPress options.
+	 *
+	 * Endpoints:
+	 * - Promotion Validation: Registers the endpoint for validating promotion codes if the
+	 *   'promotion_validation_api' option is enabled.
+	 *   Example: http://example.com/wp-json/{api_route_prefix}/{promotion_validation_route}
+	 *
+	 * - Check Balance: Registers the endpoint for checking user balance if the
+	 *   'check_balance_api' option is enabled.
+	 *   Example: http://example.com/wp-json/{api_route_prefix}/{check_balance_route}
+	 *
+	 * - Send Dice Data: Registers the endpoint for sending dice data if the
+	 *   'dice_send_api' option is enabled.
+	 *   Example: http://example.com/wp-json/{api_route_prefix}/{dice_send_route}
+	 *
+	 * Each endpoint requires the user to be logged in to access it.
+	 *
+	 * @return void
 	 */
 	function rest_api_endpoints(): void {
 		
@@ -64,7 +97,7 @@ class ChubGame_Register_Route_API {
 		if( !empty( $promotion_validation_api ) && ( $promotion_validation_api == 'yes' )
 			&& !empty( $api_route_prefix ) && !empty( $promotion_validation_route ) ) {
 			/**
-			 * Handle User Login request.
+			 * Handle validate request.
 			 *
 			 * Example: http://example.com/wp-json/chubgame/v1/validate
 			 */
@@ -82,7 +115,7 @@ class ChubGame_Register_Route_API {
 		if( !empty( $check_balance_api ) && ( $check_balance_api == 'yes' )
 			&& !empty( $api_route_prefix ) && !empty( $check_balance_route ) ) {
 			/**
-			 * Handle Post request.
+			 * Handle check balance request.
 			 *
 			 * Example: http://example.com/wp-json/chubgame/v1/check-balance
 			 */
@@ -100,7 +133,7 @@ class ChubGame_Register_Route_API {
 		if( !empty( $dice_send_api ) && ( $dice_send_api == 'yes' )
 			&& !empty( $api_route_prefix ) && !empty( $dice_send_route ) ) {
 			/**
-			 * Handle User request.
+			 * Handle send dice data.
 			 *
 			 * Example: http://example.com/wp-json/chubgame/v1/send
 			 */
@@ -155,9 +188,21 @@ class ChubGame_Register_Route_API {
 	}
 
 	/**
-	 * User Login call back.
+	 * Handle the validation of a promotion code.
 	 *
-	 * @param WP_REST_Request $request Login request parameter.
+	 * This function validates a promotion code provided by a user and associates the user with the parent user who generated the promotion code.
+	 * It performs the following steps:
+	 * 1. Checks if the request is from an allowed domain.
+	 * 2. Retrieves and logs the promotion code and username from the request.
+	 * 3. Validates the presence of the promotion code and username.
+	 * 4. Retrieves the child user ID based on the provided username.
+	 * 5. Validates the promotion code and fetches the parent user who generated the promotion code.
+	 * 6. Checks if the promotion code has already been used.
+	 * 7. Associates the parent user with the child user if the promotion code is valid and has not been used.
+	 * 8. Returns a response indicating the success or failure of the operation.
+	 *
+	 * @param WP_REST_Request $request The login request parameter.
+	 * @return WP_REST_Response The response indicating the result of the promotion code validation.
 	 */
 	function handle_validate_promotion_code(WP_REST_Request $request): WP_REST_Response {
 		global $wpdb;
@@ -235,10 +280,16 @@ class ChubGame_Register_Route_API {
 	}
 
 	/**
-	 * Post & Postmeta call back.
+	 * Handle the check balance request.
 	 *
-	 * @param WP_REST_Request $request Post request parameter.
-	 */	
+	 * This function handles the check balance request by validating the request parameters,
+	 * checking if the myCred plugin is active, verifying the user's existence, and ensuring
+	 * that the user's balance is sufficient for the requested chips.
+	 *
+	 * @param WP_REST_Request $request The REST API request object containing the parameters.
+	 * 
+	 * @return WP_REST_Response The REST API response object containing the result of the balance check.
+	 */
 	function handle_check_balance(WP_REST_Request $request): WP_REST_Response {
 		global $wpdb;
 
@@ -306,10 +357,36 @@ class ChubGame_Register_Route_API {
 	}
 
 	/**
-	 * User & Usermeta call back.
+	 * Handle sending dice data.
 	 *
-	 * @param WP_REST_Request $request User request parameter.
-	 */	
+	 * This function processes the dice data sent by the user and updates the user's balance accordingly.
+	 * It supports both PvE (Player vs Environment) and PvP (Player vs Player) modes.
+	 *
+	 * @param WP_REST_Request $request The user request parameter.
+	 * 
+	 * @return WP_REST_Response The response containing the result of the dice data processing.
+	 * 
+	 * @global wpdb $wpdb WordPress database abstraction object.
+	 * 
+	 * @throws WP_Error If required parameters are missing or invalid.
+	 * 
+	 * @note This function requires the myCred plugin to be active.
+	 * 
+	 * @note The function performs the following steps:
+	 * - Checks if the myCred plugin is active.
+	 * - Validates the request parameters.
+	 * - Retrieves user information based on the provided username.
+	 * - Processes the dice data in PvE mode if no promotion code is provided and the user is not a promotion user.
+	 * - Generates a random promotion code if the user is a promotion user and no promotion code is provided.
+	 * - Checks if the promotion code has already been used.
+	 * - Processes the dice data for parent and child users in PvP mode.
+	 * - Logs the dice data in the database.
+	 * 
+	 * @note The function uses the following helper functions:
+	 * - clamp_points: Clamps the points to the specified minimum and maximum values.
+	 * 
+	 * @note The function logs various events and errors using error_log for debugging purposes.
+	 */
 	function handle_send_dice_data(WP_REST_Request $request): WP_REST_Response {
 		global $wpdb;
 
