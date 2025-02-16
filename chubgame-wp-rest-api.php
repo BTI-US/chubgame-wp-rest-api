@@ -64,10 +64,16 @@ function check_admin_notices(): void {
             <p><?php _e('The myCred plugin is not activated. Please install and activate the myCred plugin to use the ChubGame WP REST API plugin.', 'chubgame-wp-rest-api'); ?></p>
         </div>
         <?php
+    } elseif (!is_plugin_active('oauth2-provider/wp-oauth-server.php')) {
+        ?>
+        <div class="notice notice-error is-dismissible">
+            <p><?php _e('The WP OAuth Server plugin is not activated. Please install and activate the WP OAuth Server plugin to use the OAuth 2.0 authentication.', 'chubgame-wp-rest-api'); ?></p>
+        </div>
+        <?php
     } else {
         ?>
         <div class="notice notice-success is-dismissible">
-            <p><?php _e('The myCred plugin is activated. You can now use the ChubGame WP REST API plugin.', 'chubgame-wp-rest-api'); ?></p>
+            <p><?php _e('The myCred and WP OAuth Server plugins are activated. You can now use the ChubGame WP REST API plugin.', 'chubgame-wp-rest-api'); ?></p>
         </div>
         <?php
     }
@@ -123,6 +129,20 @@ function register_awpr_plugin_settings(): void {
     register_setting('awpr-plugin-settings-group', 'mycred_points_subtract_reference');
     register_setting('awpr-plugin-settings-group', 'mycred_points_subtract_log_entry_pve');
     register_setting('awpr-plugin-settings-group', 'mycred_points_subtract_log_entry_pvp');
+
+    // Register settings for Limitation Settings
+    register_setting('awpr-plugin-settings-group', 'win_points_max');
+    register_setting('awpr-plugin-settings-group', 'win_points_min');
+    register_setting('awpr-plugin-settings-group', 'loss_points_max');
+    register_setting('awpr-plugin-settings-group', 'loss_points_min');
+
+    // Register settings for Domain Settings
+    register_setting('awpr-plugin-settings-group', 'enable_allowed_domain');
+    register_setting('awpr-plugin-settings-group', 'allowed_domain');
+
+    // Register settings for OAuth 2.0 Authentication Settings
+    register_setting('awpr-plugin-settings-group', 'oauth_client_id');
+    register_setting('awpr-plugin-settings-group', 'oauth_client_secret');
 }
 
 /**
@@ -360,6 +380,27 @@ function AWPR_options_settings(): void {
                 </table>
             </fieldset>
 
+            <!-- OAuth 2.0 Authentication Section -->
+            <fieldset>
+                <h3><?php _e('OAuth 2.0 Authentication Settings', 'chubgame-wp-rest-api'); ?></h3>
+                <table>
+                    <tr valign="top" class="awpr-api-table">
+                        <th scope="row"><label for="oauth_client_id"><?php _e('OAuth 2.0 Client ID', 'chubgame-wp-rest-api'); ?></label></th>
+                        <td>
+                            <input type="text" id="oauth_client_id" name="oauth_client_id" value="<?php echo esc_attr(get_option('oauth_client_id', '')); ?>" placeholder="Input your OAuth 2.0 client ID here:" />
+                            <p><?php _e('Enter the OAuth 2.0 client ID.', 'chubgame-wp-rest-api'); ?></p>
+                        </td>
+                    </tr>
+                    <tr valign="top" class="awpr-api-table">
+                        <th scope="row"><label for="oauth_client_secret"><?php _e('OAuth 2.0 Client Secret', 'chubgame-wp-rest-api'); ?></label></th>
+                        <td>
+                            <input type="text" id="oauth_client_secret" name="oauth_client_secret" value="<?php echo esc_attr(get_option('oauth_client_secret', '')); ?>" placeholder="Input your OAuth 2.0 client secret here:" />
+                            <p><?php _e('Enter the OAuth 2.0 client secret.', 'chubgame-wp-rest-api'); ?></p>
+                        </td>
+                    </tr>
+                </table>
+            </fieldset>
+
             <?php submit_button(); ?>
         </form>
     </div>
@@ -500,6 +541,19 @@ function AWPR_test_interfaces_page(): void {
     <div class="awpr_main">
         <h2><?php _e('Test Interfaces', 'chubgame-wp-rest-api'); ?></h2>
 
+        <!-- OAuth 2.0 Authorization Section -->
+        <fieldset>
+            <h3><?php _e('OAuth 2.0 Authentication Settings', 'chubgame-wp-rest-api'); ?></h3>
+            <table>
+                <tr valign="top" class="awpr-api-table">
+                    <th scope="row"><?php _e('Authorize Account', 'chubgame-wp-rest-api'); ?></th>
+                    <td>
+                        <a href="<?php echo admin_url('admin-post.php?action=oauth_authorize'); ?>" class="button button-primary"><?php _e('Authorize', 'chubgame-wp-rest-api'); ?></a>
+                    </td>
+                </tr>
+            </table>
+        </fieldset>
+
         <!-- Promotion Code Validation Section -->
         <fieldset>
             <h3><?php _e('Promotion Code Validation', 'chubgame-wp-rest-api'); ?></h3>
@@ -513,7 +567,7 @@ function AWPR_test_interfaces_page(): void {
                     'username' => 'testuser'
                 ), JSON_PRETTY_PRINT)); ?></textarea>
                 <br><br>
-                <button type="button" id="awpr-test-button-validate"><?php _e('Test', 'chubgame-wp-rest-api'); ?></button>
+                <button type="button" id="awpr-test-button-validate" class="button button-primary"><?php _e('Test', 'chubgame-wp-rest-api'); ?></button>
             </form>
             <div id="awpr-test-result-validate"></div>
         </fieldset>
@@ -531,7 +585,7 @@ function AWPR_test_interfaces_page(): void {
                     'chips' => 100
                 ), JSON_PRETTY_PRINT)); ?></textarea>
                 <br><br>
-                <button type="button" id="awpr-test-button-check-balance"><?php _e('Test', 'chubgame-wp-rest-api'); ?></button>
+                <button type="button" id="awpr-test-button-check-balance" class="button button-primary"><?php _e('Test', 'chubgame-wp-rest-api'); ?></button>
             </form>
             <div id="awpr-test-result-check-balance"></div>
         </fieldset>
@@ -557,13 +611,86 @@ function AWPR_test_interfaces_page(): void {
                     'chips' => 100
                 ), JSON_PRETTY_PRINT)); ?></textarea>
                 <br><br>
-                <button type="button" id="awpr-test-button-send"><?php _e('Test', 'chubgame-wp-rest-api'); ?></button>
+                <button type="button" id="awpr-test-button-send" class="button button-primary"><?php _e('Test', 'chubgame-wp-rest-api'); ?></button>
             </form>
             <div id="awpr-test-result-send"></div>
         </fieldset>
     </div>
     <?php
 }
+
+function initiate_oauth_authorization() {
+    $client_id = esc_attr(get_option('oauth_client_id'));
+    $redirect_uri = admin_url('admin-post.php?action=oauth_callback');
+
+    $oauth_state = wp_create_nonce('oauth_state');
+    set_transient('oauth_state_' . $oauth_state, true, 10 * MINUTE_IN_SECONDS);
+
+    $auth_url = add_query_arg(array(
+        'response_type' => 'code',
+        'client_id' => $client_id,
+        'redirect_uri' => $redirect_uri,
+        'state' => $oauth_state
+    ), home_url('/oauth/authorize'));
+
+    wp_redirect($auth_url);
+    exit;
+}
+
+add_action('admin_post_oauth_authorize', 'initiate_oauth_authorization');
+
+function handle_oauth_callback() {
+    if (!isset($_GET['code']) || !isset($_GET['state']) || !get_transient('oauth_state_' . $_GET['state'])) {
+        delete_transient('oauth_state_' . $_GET['state']);
+        wp_die('Invalid OAuth callback');
+    }
+
+    delete_transient('oauth_state_' . $_GET['state']);
+
+    $client_id = esc_attr(get_option('oauth_client_id'));
+    $client_secret = esc_attr(get_option('oauth_client_secret'));
+    $redirect_uri = admin_url('admin-post.php?action=oauth_callback');
+    $token_url = home_url('/oauth/token');
+
+    $response = wp_remote_post($token_url, array(
+        'body' => array(
+            'grant_type' => 'authorization_code',
+            'code' => sanitize_text_field($_GET['code']),
+            'redirect_uri' => $redirect_uri,
+            'client_id' => $client_id,
+            'client_secret' => $client_secret,
+        ),
+    ));
+
+    if (is_wp_error($response)) {
+        $error_message = $response->get_error_message();
+        error_log('API request failed: ' . $error_message);
+        wp_die('API request failed: ' . $error_message);
+    }
+
+    $body = wp_remote_retrieve_body($response);
+
+    // Extract JSON content from the response body
+    if (preg_match('/\{.*\}/s', $body, $matches)) {
+        $body = $matches[0];
+    } else {
+        error_log('Failed to extract JSON from API response');
+        wp_die('Failed to extract JSON from API response');
+    }
+
+    $data = json_decode($body, true);
+
+    if (isset($data['access_token'])) {
+        update_option('oauth_access_token', $data['access_token']);
+        wp_redirect(admin_url('options-general.php?page=awpr_settings&tab=options-settings'));
+        exit;
+    } else {
+        error_log('API response error: ' . print_r($data, true));
+        wp_die('API response error: ' . print_r($data, true));
+    }
+}
+
+add_action('admin_post_oauth_callback', 'handle_oauth_callback');
 
 add_action('wp_ajax_awpr_test_endpoint', 'awpr_test_endpoint');
 function awpr_test_endpoint() {
@@ -590,10 +717,17 @@ function awpr_test_endpoint() {
             return;
     }
 
+    $token = get_option('oauth_access_token');
+    if (!$token) {
+        wp_send_json_error('Failed to obtain OAuth token');
+        return;
+    }
+
     $response = wp_remote_post($api_url, array(
         'body' => $json_body,
         'headers' => array(
             'Content-Type' => 'application/json',
+            'Authorization' => 'Bearer ' . $token,
         ),
     ));
 

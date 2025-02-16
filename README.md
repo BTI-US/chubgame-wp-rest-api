@@ -312,3 +312,19 @@ Handles the dice game data and manages the chips for parent and child users.
     }
 }
 ```
+
+## FAQ
+
+1. Using Nginx as a reverse proxy for the WordPress REST API cause the error `404 Not Found`
+
+    - **Solution**: Add the following configuration to the Nginx configuration file:
+
+    ```nginx
+        listen 80;
+        server_name 127.0.0.1;
+        index index.html index.htm index.php;
+        root  /www/wwwroot/127_0_0_1;
+        location / {
+            try_files $uri $uri/ /index.php?$args;
+        }
+    ```
