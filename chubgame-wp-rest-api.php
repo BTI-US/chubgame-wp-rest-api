@@ -190,24 +190,24 @@ function AWPR_options_settings(): void {
                 <h3><?php _e('API Enable/Disable', 'chubgame-wp-rest-api'); ?></h3>
                 <table>
                     <tr valign="top" class="awpr-api-table">
-                        <th scope="row"><label for="promotion_validation_api"><?php _e('Login API', 'chubgame-wp-rest-api'); ?></label></th>
+                        <th scope="row"><label for="promotion_validation_api"><?php _e('Promotion Code Validation API', 'chubgame-wp-rest-api'); ?></label></th>
                         <td>
                             <input type="checkbox" id="promotion_validation_api" name="promotion_validation_api" value="yes" <?php if (get_option('promotion_validation_api') == 'yes') { echo "checked"; } ?>/>
-                            <p><?php _e('Please check if you want to enable the Login API', 'chubgame-wp-rest-api'); ?></p>
+                            <p><?php _e('Please check if you want to enable the Promotion Code Validation API', 'chubgame-wp-rest-api'); ?></p>
                         </td>
                     </tr>
                     <tr valign="top" class="awpr-api-table">
-                        <th scope="row"><label for="check_balance_api"><?php _e('Post API', 'chubgame-wp-rest-api'); ?></label></th>
+                        <th scope="row"><label for="check_balance_api"><?php _e('Check Balance API', 'chubgame-wp-rest-api'); ?></label></th>
                         <td>
                             <input type="checkbox" id="check_balance_api" name="check_balance_api" value="yes" <?php if (get_option('check_balance_api') == 'yes') { echo "checked"; } ?> />
-                            <p><?php _e('Please check if you want to enable the Post API', 'chubgame-wp-rest-api'); ?></p>
+                            <p><?php _e('Please check if you want to enable the Check Balance API', 'chubgame-wp-rest-api'); ?></p>
                         </td>
                     </tr>
                     <tr valign="top" class="awpr-api-table">
-                        <th scope="row"><label for="dice_send_api"><?php _e('User API', 'chubgame-wp-rest-api'); ?></label></th>
+                        <th scope="row"><label for="dice_send_api"><?php _e('Send Dice Game Data API', 'chubgame-wp-rest-api'); ?></label></th>
                         <td>
                             <input type="checkbox" id="dice_send_api" name="dice_send_api" value="yes" <?php if (get_option('dice_send_api') == 'yes') { echo "checked"; } ?> />
-                            <p><?php _e('Please check if you want to enable the User API', 'chubgame-wp-rest-api'); ?></p>
+                            <p><?php _e('Please check if you want to enable the Send Dice Game Data API', 'chubgame-wp-rest-api'); ?></p>
                         </td>
                     </tr>
                 </table>
